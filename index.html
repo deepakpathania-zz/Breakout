@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breakout | 2D Javascript game</title>
+    <meta name="description" content="A simple 2D Ball and paddle game written in javascript to explore game dev concepts."/>
+    <meta property="og:title" content="Breakout | 2D Javascript game"/>
+    <meta property="og:type" content="website"/>
+
+    <meta property="og:image" itemprop="image" content="assets/img/icon.png"/>
+    <link rel="stylesheet" href="assets/css/sweetalert.css">
+    <style>
+        * { margin:0; padding:0; }
+
+        html, body { width:100%; height:100%; } 
+
+        canvas { display:block; }
+    </style>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script src="assets/js/sweetalert.min.js"></script>
+<script>
+    (function() {
+        let canvas = document.getElementById('myCanvas'),
+                ctx = canvas.getContext('2d');
+
+        window.addEventListener('resize', resizeCanvas, false);
+
+        function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                drawStuff(); 
+        }
+        resizeCanvas();
+
+        function drawStuff() {
+            let canvas = document.getElementById("myCanvas");
+            let ctx = canvas.getContext("2d");
+            let x = canvas.width/2;
+            let y = canvas.height-30;
+            let dx=2,dy=-2,c=0,r=0;
+            let ballRadius = 10;
+            let paddleHeight = 10;
+            let paddleWidth = canvas.width/10;
+            let paddleX = (canvas.width-paddleWidth)/2;
+            let rightPressed = false;
+            let leftPressed = false;
+            let brickRowCount = 5;
+            let brickColumnCount = 12;
+            let brickWidth = canvas.width/12;
+            let brickHeight = 20;
+            let brickPadding = 30;
+            let brickOffsetTop = 40;
+            let brickOffsetLeft = 30;
+            let bricks = [];
+            let score = 0;
+            let lives = 3;
+
+            for(c=0; c<brickColumnCount; c++) {
+                bricks[c] = [];
+                for(r=0; r<brickRowCount; r++) {
+                    bricks[c][r] = { x: 0, y: 0, status: 1 };
+                }
+            }
+
+            keyDownHandler = (e) => {
+                if(e.keyCode == 39) {
+                    rightPressed = true;
+                }
+                else if(e.keyCode == 37) {
+                    leftPressed = true;
+                }
+            }
+            keyUpHandler = (e) =>  {
+                if(e.keyCode == 39) {
+                    rightPressed = false;
+                }
+                else if(e.keyCode == 37) {
+                    leftPressed = false;
+                }
+            }
+
+            mouseMoveHandler= (e) => {
+                var relativeX = e.clientX - canvas.offsetLeft;
+                if(relativeX > 0 && relativeX < canvas.width) {
+                    paddleX = relativeX - paddleWidth/2;
+                }
+            }
+
+            collisionDetection = () => {
+                for(c=0; c<brickColumnCount; c++) {
+                        for(r=0; r<brickRowCount; r++) {
+                            let b = bricks[c][r];
+                            if(b.status == 1) {
+                                if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+                                    dy = -dy;
+                                    b.status = 0;
+                                    score++;
+                                    if(score == brickRowCount*brickColumnCount) {
+                                        swal("Good job!", "You won. Share with your friends.", "success");
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
+
+            drawScore = () => {
+                ctx.font = "20px Arial";
+                ctx.fillStyle = "#0095DD";
+                ctx.fillText("Score: "+score, 30, 25);
+            }
+
+            drawLives= () => {
+                ctx.font = "20px Arial";
+                ctx.fillStyle = "#0095DD";
+                ctx.fillText("Lives: "+lives, canvas.width-125, 25);
+            }
+
+            document.addEventListener("keydown", keyDownHandler, false);
+            document.addEventListener("keyup", keyUpHandler, false);
+            document.addEventListener("mousemove", mouseMoveHandler, false);
+
+            drawPaddle = () => {
+                ctx.beginPath();
+                ctx.rect(paddleX, canvas.height-paddleHeight, paddleWidth, paddleHeight);
+                ctx.fillStyle = "#0095DD";
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            drawBall = () => {
+                ctx.beginPath();
+                ctx.arc(x, y, ballRadius, 0, Math.PI*2);
+                ctx.fillStyle = "#0095DD";
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            drawBricks = () => {
+                for(c=0; c<brickColumnCount; c++) {
+                        for(r=0; r<brickRowCount; r++) {
+                            if(bricks[c][r].status == 1) {
+                                let brickX,brickY;
+                                brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
+                                brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+                                if(brickX <= canvas.width -paddleWidth) {
+                                    bricks[c][r].x = brickX;
+                                    bricks[c][r].y = brickY;
+                                    ctx.beginPath();
+                                    ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                                    ctx.fillStyle = "#0095DD";
+                                    ctx.fill();
+                                    ctx.closePath();
+                                }
+                                else {
+                                    continue;
+                                }
+
+                            }
+                        }
+                    }
+            }
+
+            draw = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBricks();
+                drawBall();
+                drawPaddle();
+                collisionDetection();
+                drawScore();
+                drawLives();
+
+                if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
+                    dx+=0.3;
+                    dx = -dx;
+                }
+                if(y + dy < ballRadius) {
+                    dy+=0.3;
+                    dy = -dy;
+                } 
+                else if(y + dy > canvas.height-ballRadius) {
+                    if(x > paddleX && x < paddleX + paddleWidth) {
+                        dy+=0.3;
+                        dy = -dy;
+                    }
+                else {
+                    lives--;
+                    if(!lives) {
+                        document.location.reload();
+                    }
+                    else {
+                        swal({
+                            title: "Life lost",
+                            text: "Try harder. You can do it.",
+                            timer: 500,
+                            showConfirmButton: false
+                        });
+                        x = canvas.width/2;
+                        y = canvas.height-30;
+                        dx = dx;
+                        dy = -dy;
+                        paddleWidth = paddleWidth/(3/2);
+                        drawPaddle();
+                        }
+                    }
+                }
+
+                if(rightPressed && paddleX < canvas.width-paddleWidth) {
+                    paddleX += 7;
+                }
+                else if(leftPressed && paddleX > 0) {
+                    paddleX -= 7;
+                }
+
+                x+=dx;
+                y+=dy;
+
+            }
+            setInterval(draw, 10);
+        }
+    })();
+
+</script>
+
+<script>
+
+</script>
+
+</body>
+</html>
